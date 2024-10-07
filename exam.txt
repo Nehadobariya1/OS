@@ -1,0 +1,392 @@
+MyDBHelper.kt
+------------------------------------------------------
+
+package com.example.dbpractice
+
+import android.content.Context
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteOpenHelper
+
+class MyDBHelper(context: Context):SQLiteOpenHelper(context,"STUDENT_DB",null,1){
+    override fun onCreate(p0: SQLiteDatabase?) {
+
+        p0?.execSQL("CREATE TABLE STUDENT(SID INTEGER PRIMARY KEY AUTOINCREMENT,SNAME TEXT,SEM NUMBER)")
+        p0?.execSQL("INSERT INTO STUDENT(SNAME,SEM) VALUES('PRINS',5)")
+    }
+
+    override fun onUpgrade(p0: SQLiteDatabase?, p1: Int, p2: Int) {
+
+    }
+}
+
+
+MainActivity.kt
+------------------------------
+
+package com.example.dbpractice
+
+import android.content.ContentValues
+import android.content.DialogInterface
+import android.database.Cursor
+import android.os.Bundle
+import android.widget.Button
+import android.widget.EditText
+import android.widget.ListView
+import android.widget.SearchView
+import android.widget.SimpleCursorAdapter
+import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+
+class MainActivity : AppCompatActivity() {
+
+    lateinit var sname : EditText
+    lateinit var sem : EditText
+    lateinit var insert:Button
+    lateinit var updat: Button
+    lateinit var delete : Button
+    lateinit var clear:Button
+    lateinit var nextbtn :Button
+    lateinit var prevbtn:Button
+    lateinit var firstbtn:Button
+    lateinit var lastBbtn:Button
+    lateinit var showbtn:Button
+    lateinit var serachview:SearchView
+    lateinit var listView:ListView
+    lateinit var rs:Cursor
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContentView(R.layout.activity_main)
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
+
+
+        sname=findViewById(R.id.name)
+        sem=findViewById(R.id.sem)
+        insert=findViewById(R.id.insert)
+        updat=findViewById(R.id.update)
+        delete=findViewById(R.id.delete)
+        clear=findViewById(R.id.clear)
+        nextbtn=findViewById(R.id.next)
+        prevbtn=findViewById(R.id.prev)
+        firstbtn=findViewById(R.id.first)
+        lastBbtn=findViewById(R.id.last)
+        showbtn=findViewById(R.id.showbtn)
+        serachview=findViewById(R.id.serachview)
+        listView=findViewById(R.id.listview)
+
+        var helper=MyDBHelper(applicationContext)
+        var db=helper.writableDatabase
+        Toast.makeText(applicationContext,"Db and Table created",Toast.LENGTH_LONG).show()
+
+        rs=db.rawQuery("SELECT SID _id,SNAME,SEM FROM STUDENT",null)
+        if(rs.moveToFirst())
+        {
+            sname.setText(rs.getString(1))
+            sem.setText(rs.getString(2))
+        }
+
+        insert.setOnClickListener {
+
+            var cv=ContentValues()
+            cv.put("SNAME",sname.text.toString())
+            cv.put("SEM",sem.text.toString())
+
+            db.insert("STUDENT",null,cv)
+            rs=db.rawQuery("SELECT SID _id,SNAME,SEM FROM STUDENT",null)
+            showMessage("Recoed Inserted")
+            Clear()
+        }
+
+        updat.setOnClickListener {
+
+            var cv=ContentValues()
+            cv.put("SNAME",sname.text.toString())
+            cv.put("SEM",sem.text.toString())
+
+            db.update("STUDENT",cv,"SID=?", arrayOf(rs.getString(0)))
+            rs=db.rawQuery("SELECT SID _id,SNAME,SEM FROM STUDENT",null)
+            showMessage("Recoed Inserted")
+            Clear()
+        }
+        delete.setOnClickListener {
+
+            db.delete("STUDENT","SID=?", arrayOf(rs.getString(0)))
+            rs=db.rawQuery("SELECT SID _id,SNAME,SEM FROM STUDENT",null)
+            showMessage("Recoed Inserted")
+            Clear()
+        }
+        clear.setOnClickListener {
+            Clear()
+        }
+        nextbtn.setOnClickListener {
+        if(rs.moveToNext())
+        {
+            sname.setText(rs.getString(1))
+            sem.setText(rs.getString(2))
+        }
+        else if(rs.moveToFirst())
+        {
+            sname.setText(rs.getString(1))
+            sem.setText(rs.getString(2))
+        }
+        else
+        {
+            Toast.makeText(applicationContext,"Datav not found",Toast.LENGTH_LONG).show()
+        }
+        }
+
+        prevbtn.setOnClickListener {
+            if(rs.moveToPrevious())
+            {
+                sname.setText(rs.getString(1))
+                sem.setText(rs.getString(2))
+            }
+            else if(rs.moveToLast())
+            {
+                sname.setText(rs.getString(1))
+                sem.setText(rs.getString(2))
+            }
+            else
+            {
+                Toast.makeText(applicationContext,"Datav not found",Toast.LENGTH_LONG).show()
+            }
+        }
+
+        firstbtn.setOnClickListener {
+            if(rs.moveToFirst())
+            {
+                sname.setText(rs.getString(1))
+                sem.setText(rs.getString(2))
+            }
+            else
+            {
+                Toast.makeText(applicationContext,"Datav not found",Toast.LENGTH_LONG).show()
+            }
+        }
+        lastBbtn.setOnClickListener {
+            if(rs.moveToLast())
+            {
+                sname.setText(rs.getString(1))
+                sem.setText(rs.getString(2))
+            }
+            else
+            {
+                Toast.makeText(applicationContext,"Datav not found",Toast.LENGTH_LONG).show()
+            }
+        }
+        showbtn.setOnClickListener {
+
+            var adapter = SimpleCursorAdapter(applicationContext,android.R.layout.simple_list_item_2,rs,
+                arrayOf("SNAME","SEM"), intArrayOf(android.R.id.text1,android.R.id.text2)
+            )
+            listView.adapter=adapter
+
+
+            serachview.queryHint = "Search among ${rs.count} Records"
+            serachview.setOnQueryTextListener(object:SearchView.OnQueryTextListener {
+                override fun onQueryTextSubmit(p0: String?): Boolean {
+                    return false
+                }
+
+                override fun onQueryTextChange(p0: String?): Boolean {
+                    rs=db.rawQuery("SELECT SID _id,SNAME,SEM FROM STUDENT WHERE SNAME LIKE '%${p0}%' OR SEM LIKE '%${p0}%'",null)
+                    adapter.changeCursor(rs)
+
+                    return false
+                }
+
+            })
+        }
+
+    }
+
+    private fun Clear() {
+        sname.setText("")
+        sem.setText("")
+        sname.requestFocus()
+    }
+
+    private fun showMessage(s: String) {
+    AlertDialog.Builder(this)
+        .setTitle("SUCCESS")
+        .setMessage(s)
+        .setPositiveButton("OK",DialogInterface.OnClickListener { dialogInterface, i ->
+        if(rs.moveToFirst())
+        {
+            sname.setText(rs.getString(1))
+            sem.setText(rs.getString(2))
+        }
+        else
+        {
+            Toast.makeText(applicationContext,"Datav not found",Toast.LENGTH_LONG).show()
+        }
+        }).show()
+
+    }
+}
+
+custome_layout.xml
+-------------------------
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+
+    <TextView
+        android:id="@+id/text1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text=""
+        android:layout_margin="5dp"
+
+        android:padding="5dp"
+        android:gravity="center"
+        android:background="#C4EDFF"
+        android:textColor="#0067B8"
+        android:textSize="20dp"/>
+
+    <TextView
+        android:id="@+id/text2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text=""
+        android:layout_margin="5dp"
+        android:padding="5dp"
+        android:gravity="center"
+        android:background="#C4EDFF"
+        android:textColor="#0067B8"
+        android:textSize="20dp"
+        />
+</LinearLayout>
+
+activity_main.xml
+----------------------------------------
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".MainActivity"
+    android:layout_margin="10dp">
+
+
+    <EditText
+        android:id="@+id/name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="text"
+        android:hint="Enter your Name"
+        android:text="" />
+
+    <EditText
+        android:id="@+id/sem"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="text"
+        android:hint="Enter Semester"
+        android:text="" />
+
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/insert"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Insert"
+            android:layout_weight="1"/>
+        <Button
+            android:id="@+id/update"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="update"
+            android:layout_weight="1"/>
+        <Button
+            android:id="@+id/delete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="delete"
+            android:layout_weight="1"/>
+        <Button
+            android:id="@+id/clear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="clear"
+            android:layout_weight="1"/>
+
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/next"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="next"
+            android:layout_weight="1"/>
+        <Button
+            android:id="@+id/prev"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="prev"
+            android:layout_weight="1"/>
+        <Button
+            android:id="@+id/first"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="first"
+            android:layout_weight="1"/>
+        <Button
+            android:id="@+id/last"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="last"
+            android:layout_weight="1"/>
+
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/showbtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Show all Records" />
+
+    <SearchView
+        android:id="@+id/serachview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <ListView
+        android:id="@+id/listview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+</LinearLayout>
+
+
+
