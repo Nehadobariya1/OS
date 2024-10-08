@@ -1,0 +1,279 @@
+MyDBHElper.kt
+-------------------------------------
+
+class myDBHelper(context: Context): SQLiteOpenHelper(context,"STUDENTDB",null,1) {
+    override fun onCreate(p0: SQLiteDatabase?) {
+        p0?.execSQL("CREATE TABLE STUDENTS(SID INTEGER PRIMARY KEY AUTOINCREMENT,SNAME TEXT, SEM NUMBER)")
+        p0?.execSQL("INSERT INTO STUDENTS(SNAME,SEM)VALUES('krupali',3)")
+    }
+
+    override fun onUpgrade(p0: SQLiteDatabase?, p1: Int, p2: Int) {
+
+    }
+}
+
+
+
+MainActivity.kt
+--------------------------------------
+
+class MainActivity : AppCompatActivity() {
+    lateinit var sname:EditText
+    lateinit var sem:EditText
+    lateinit var insertbtn:Button
+    lateinit var updatebtn:Button
+    lateinit var deletebtn:Button
+    lateinit var clearbtn:Button
+    lateinit var nextbtn:Button
+    lateinit var previousbtn:Button
+    lateinit var firstbtn:Button
+    lateinit var lastbtn:Button
+    lateinit var showbtn:Button
+    lateinit var search:SearchView
+    lateinit var list:ListView
+    lateinit var rs:Cursor
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContentView(R.layout.activity_main)
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
+        sname=findViewById(R.id.editTextText3)
+        sem=findViewById(R.id.editTextText4)
+        insertbtn=findViewById(R.id.button1)
+        updatebtn=findViewById(R.id.button2)
+        deletebtn=findViewById(R.id.button3)
+        clearbtn=findViewById(R.id.button4)
+        nextbtn=findViewById(R.id.button5)
+        previousbtn=findViewById(R.id.button6)
+        firstbtn=findViewById(R.id.button7)
+        lastbtn=findViewById(R.id.button8)
+        showbtn=findViewById(R.id.show)
+        search=findViewById(R.id.SearchView)
+        list=findViewById(R.id.ListView)
+
+        var helper=myDBHelper(applicationContext)
+        var db=helper.writableDatabase
+
+        Toast.makeText(applicationContext,"Db and Table created",Toast.LENGTH_LONG).show()
+
+        rs=db.rawQuery("SELECT SID _ID,SNAME,SEM FROM STUDENTS", null)
+
+        if(rs.moveToFirst()){
+            sname.setText(rs.getString(1))
+            sem.setText(rs.getString(2))
+        }
+
+        insertbtn.setOnClickListener {
+            var cv=ContentValues()
+            cv.put("SNAME",sname.text.toString())
+            cv.put("SEM",sem.text.toString())
+            db.insert("STUDENTS",null,cv)
+            rs=db.rawQuery("SELECT SID _ID,SNAME,SEM FROM STUDENTS", null)
+            showMessage("Record Inserted")
+            Clear()
+        }
+
+        updatebtn.setOnClickListener {
+            var cv=ContentValues()
+            cv.put("SNAME",sname.text.toString())
+            cv.put("SEM",sem.text.toString())
+            db.update("STUDENTS",cv,"SID=?", arrayOf(rs.getString(0)))
+            rs=db.rawQuery("SELECT SID _ID,SNAME,SEM FROM STUDENTS", null)
+            showMessage("Record Updated")
+            Clear()
+        }
+
+        deletebtn.setOnClickListener {
+            db.delete("STUDENTS","SID=?", arrayOf(rs.getString(0)))
+            rs=db.rawQuery("SELECT SID _ID,SNAME,SEM FROM STUDENTS", null)
+            showMessage("Record Deleted")
+            Clear()
+        }
+
+        clearbtn.setOnClickListener {
+            Clear()
+        }
+
+        nextbtn.setOnClickListener {
+            if(rs.moveToNext())
+            {
+                sname.setText(rs.getString(1))
+                sem.setText(rs.getString(2))
+            }
+            else if(rs.moveToFirst())
+            {
+                sname.setText(rs.getString(1))
+                sem.setText(rs.getString(2))
+            }
+            else{
+                Toast.makeText(applicationContext,"data not found",Toast.LENGTH_LONG).show()
+            }
+        }
+
+        previousbtn.setOnClickListener {
+            if(rs.moveToPrevious())
+            {
+                sname.setText(rs.getString(1))
+                sem.setText(rs.getString(2))
+            }
+            else if(rs.moveToLast())
+            {
+                sname.setText(rs.getString(1))
+                sem.setText(rs.getString(2))
+            }
+            else{
+                Toast.makeText(applicationContext,"data not found",Toast.LENGTH_LONG).show()
+            }
+        }
+
+        firstbtn.setOnClickListener {
+            if(rs.moveToFirst())
+            {
+                sname.setText(rs.getString(1))
+                sem.setText(rs.getString(2))
+            }
+            else{
+                Toast.makeText(applicationContext,"data not found",Toast.LENGTH_LONG).show()
+            }
+        }
+        lastbtn.setOnClickListener {
+            if(rs.moveToLast())
+            {
+                sname.setText(rs.getString(1))
+                sem.setText(rs.getString(2))
+            }
+            else{
+                Toast.makeText(applicationContext,"data not found",Toast.LENGTH_LONG).show()
+            }
+        }
+
+        showbtn.setOnClickListener {
+
+            var i=Intent(this,showActivity::class.java)
+//            i.putExtra("sname",sname.text.toString())
+//            i.putExtra("sem",sem.text.toString())
+            startActivity(i)
+            
+        }
+    }
+
+    private fun Clear() {
+        sname.setText("")
+        sem.setText("")
+        sname.requestFocus()
+    }
+
+    private fun showMessage(s: String) {
+        AlertDialog.Builder(this)
+            .setTitle("Success!!")
+            .setMessage(s)
+            .setPositiveButton("OK",DialogInterface.OnClickListener { dialogInterface, i ->
+                if(rs.moveToFirst()){
+                    sname.setText(rs.getString(1))
+                    sem.setText(rs.getString(2))
+                }
+                else{
+                    Toast.makeText(applicationContext,"data not found",Toast.LENGTH_LONG).show()
+                }
+            }).show()
+    }
+}
+
+
+ShowActivity.kt
+---------------------------
+
+class showActivity : AppCompatActivity() {
+
+    lateinit var rs: Cursor
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContentView(R.layout.activity_show)
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
+
+
+
+        var helper=myDBHelper(applicationContext)
+        var db=helper.readableDatabase
+
+        var sv:SearchView=findViewById(R.id.searchView)
+        var lv:ListView=findViewById(R.id.listView2)
+
+
+        rs=db.rawQuery("SELECT SID _ID,SNAME,SEM FROM STUDENTS", null)
+        var adapter=SimpleCursorAdapter(applicationContext,android.R.layout.simple_list_item_2,rs,arrayOf("SNAME","SEM"),intArrayOf(android.R.id.text1,android.R.id.text2))
+        lv.adapter=adapter
+
+
+        sv.queryHint="search among ${rs.count} Records"
+            sv.setOnQueryTextListener(object:SearchView.OnQueryTextListener{
+                override fun onQueryTextSubmit(p0: String?): Boolean {
+                    return false
+                }
+
+                override fun onQueryTextChange(p0: String?): Boolean {
+                    rs=db.rawQuery("SELECT SID _id,SNAME,SEM FROM STUDENTS WHERE SNAME LIKE '%${p0}%' OR SEM LIKE '%${p0}%'",null)
+                    adapter.changeCursor(rs)
+                   return false
+                }
+            })
+
+
+    }
+}
+
+
+
+
+custome_layout.xml
+-------------------------
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+
+    <TextView
+        android:id="@+id/text1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text=""
+        android:layout_margin="5dp"
+
+        android:padding="5dp"
+        android:gravity="center"
+        android:background="#C4EDFF"
+        android:textColor="#0067B8"
+        android:textSize="20dp"/>
+
+    <TextView
+        android:id="@+id/text2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text=""
+        android:layout_margin="5dp"
+        android:padding="5dp"
+        android:gravity="center"
+        android:background="#C4EDFF"
+        android:textColor="#0067B8"
+        android:textSize="20dp"
+        />
+</LinearLayout>
+
+
+
